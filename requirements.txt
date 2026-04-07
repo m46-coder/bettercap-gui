@@ -1,0 +1,4 @@
+# Bettercap GUI Automator
+
+customtkinter
+requests

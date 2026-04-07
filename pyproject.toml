@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bettercap-gui"
+version = "0.1.0"
+description = "A GUI automator for Bettercap network testing tool"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "customtkinter",
+    "requests",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/bettercap-gui"
+Repository = "https://github.com/yourusername/bettercap-gui"
+
+[project.scripts]
+bettercap-gui = "bettercap_gui.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+bettercap_gui = ["*.txt", "*.md"]

@@ -1,0 +1,1 @@
+# Bettercap GUI Automator Package
