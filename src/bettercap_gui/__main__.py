@@ -7,9 +7,20 @@ import requests
 import time
 import json
 import os
+from functools import lru_cache
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 
+# Configure appearance
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
+
+# Create a session with connection pooling for better HTTP performance
+http_session = requests.Session()
+http_session.headers.update({'Content-Type': 'application/json'})
+
+# Thread pool for background tasks
+thread_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="bettercap_worker")
 
 
 class BettercapGUI(ctk.CTk):
@@ -92,11 +103,14 @@ class BettercapGUI(ctk.CTk):
         self.api_url = f"{self.base_url}/session"
         self.modules = []
         self.last_event_id = 0
-        self.all_events = []
+        self.all_events = deque(maxlen=500)  # Limit events to prevent memory bloat
         self.events_cache = {}
         self.all_hosts = []
         self.notes_file = "host_notes.json"
         self.host_notes = self.load_notes()
+        
+        # Cache for formatted values to reduce redundant computations
+        self._size_cache = {}
 
     def _update_workflow_buttons_state(self):
         state = "disabled" if self._workflow_running else "normal"
@@ -110,6 +124,20 @@ class BettercapGUI(ctk.CTk):
     def _append_to_widget(widget, message):
         widget.insert("end", message)
         widget.see("end")
+
+    @lru_cache(maxsize=128)
+    def _format_size_cached(self, size):
+        """Cached version of size formatting for repeated values."""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+
+    def _format_size(self, size):
+        """Format byte size with caching for performance."""
+        # Use cached version for common sizes
+        return self._format_size_cached(int(size))
 
     def setup_spoofing_tab(self):
         self.tabview.add("Spoofing")
@@ -311,7 +339,7 @@ class BettercapGUI(ctk.CTk):
 
     def fetch_results_from_api(self):
         try:
-            response = requests.get(self.api_url, timeout=5)
+            response = http_session.get(self.api_url, timeout=5)
             if response.status_code == 200:
                 data = response.json()
                 hosts = data.get('lan', {}).get('hosts', [])
@@ -355,12 +383,6 @@ class BettercapGUI(ctk.CTk):
 
             if not query or any(query in str(v).lower() for v in [ip, mac, name, vendor, display_note]):
                 self.results_tree.insert("", "end", values=(ip, mac, name, vendor, sent, recvd, seen, display_note))
-
-    def _format_size(self, size):
-        for unit in ['B', 'KB', 'MB', 'GB']:
-            if size < 1024: return f"{size:.1f} {unit}"
-            size /= 1024
-        return f"{size:.1f} TB"
 
     def _sort_results_column(self, col, reverse):
         data = [(self.results_tree.set(k, col), k) for k in self.results_tree.get_children('')]
@@ -493,7 +515,7 @@ class BettercapGUI(ctk.CTk):
 
     def refresh_modules(self):
         try:
-            response = requests.get(f"{self.api_url}/modules", timeout=10)
+            response = http_session.get(f"{self.api_url}/modules", timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 self.modules = data.get("modules", [])
@@ -523,7 +545,7 @@ class BettercapGUI(ctk.CTk):
     def run_api_command(self, cmd, output_widget=None):
         widget = output_widget or self.output_text
         try:
-            response = requests.post(self.api_url, json={"cmd": cmd}, timeout=10)
+            response = http_session.post(self.api_url, json={"cmd": cmd}, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 if data.get("success"):
@@ -545,7 +567,7 @@ class BettercapGUI(ctk.CTk):
     def fetch_events_from_api(self):
         try:
             # Fetch all events from the events buffer
-            response = requests.get(f"{self.base_url}/events", timeout=5)
+            response = http_session.get(f"{self.base_url}/events", timeout=5)
             if response.status_code == 200:
                 events = response.json()
                 new_events_found = False
@@ -752,7 +774,7 @@ class BettercapGUI(ctk.CTk):
         def panic_stop():
             try:
                 # Query the current state of all modules from the API
-                response = requests.get(f"{self.api_url}/modules", timeout=5)
+                response = http_session.get(f"{self.api_url}/modules", timeout=5)
                 if response.status_code == 200:
                     modules = response.json().get("modules", [])
                     # Identify running modules, excluding api.rest so we don't kill the connection
