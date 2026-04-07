@@ -1,0 +1,12 @@
+LICENSE
+README.md
+pyproject.toml
+src/bettercap_gui/__init__.py
+src/bettercap_gui/__main__.py
+src/bettercap_gui.egg-info/PKG-INFO
+src/bettercap_gui.egg-info/SOURCES.txt
+src/bettercap_gui.egg-info/dependency_links.txt
+src/bettercap_gui.egg-info/entry_points.txt
+src/bettercap_gui.egg-info/requires.txt
+src/bettercap_gui.egg-info/top_level.txt
+tests/test_gui.py
