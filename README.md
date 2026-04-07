@@ -43,7 +43,7 @@ bettercap-gui/
 
 1. Clone this repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/m46-coder/bettercap-gui.git
    cd bettercap-gui
    ```
 
