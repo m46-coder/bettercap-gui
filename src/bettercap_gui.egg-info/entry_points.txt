@@ -1,0 +1,2 @@
+[console_scripts]
+bettercap-gui = bettercap_gui.__main__:main
